@@ -22,6 +22,10 @@ class Config(BaseSettings):
         default="sse",
         description="Transport type (sse or stdio)",
     )
+    skip_health_check: bool = Field(
+        default=False,
+        description="Skip startup health check (faster startup, may fail on first query if DB is down)",
+    )
     host: str = Field(
         default="0.0.0.0",
         description="Bind address for SSE transport",

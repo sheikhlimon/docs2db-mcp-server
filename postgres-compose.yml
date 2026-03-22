@@ -1,0 +1,19 @@
+name: docs2db
+
+services:
+  db:
+    container_name: docs2db-db
+    profiles: ["prod"]
+    image: docker.io/pgvector/pgvector:pg17
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ragdb
+    ports:
+      - 5432:5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
