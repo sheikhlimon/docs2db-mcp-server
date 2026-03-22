@@ -8,6 +8,11 @@ import sys
 # Read transport from env to decide logging strategy
 transport = os.environ.get("DOCS2DB_MCP_TRANSPORT", "sse")
 
+# Configure FastMCP to disable update checks and banner BEFORE importing heavy modules
+# This is critical for fast startup - FastMCP checks PyPI for updates by default
+os.environ.setdefault('FASTMCP_CHECK_FOR_UPDATES', 'off')
+os.environ.setdefault('FASTMCP_LOG_ENABLED', 'false')
+
 # Configure logging BEFORE importing heavy modules
 if transport == "sse":
     # Normal logging for SSE mode
@@ -41,6 +46,10 @@ def main() -> None:
     """Run the MCP server."""
     # Import server here (tools are imported lazily by FastMCP)
     from docs2db_mcp.server import mcp
+
+    # Disable banner at runtime (already set via env var above, but keep for safety)
+    import fastmcp
+    fastmcp.settings.show_cli_banner = False
 
     # Configure structlog for stdio mode after server import
     if transport != "sse":

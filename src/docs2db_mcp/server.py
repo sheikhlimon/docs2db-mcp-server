@@ -18,6 +18,7 @@ mcp = FastMCP(
 
 # Import tools to register them with the MCP server
 # This must happen after mcp instance is created
+# Note: tools only import docs2db_mcp.server (lightweight), not docs2db_mcp.engine
 from docs2db_mcp.tools import search_documents  # noqa: F401, E402
 
 logger.info("MCP server 'docs2db-rag' initialized")

@@ -5,7 +5,6 @@ from typing import Any
 
 from mcp.types import ToolAnnotations
 
-from docs2db_mcp.engine import get_engine
 from docs2db_mcp.server import mcp
 
 logger = logging.getLogger(__name__)
@@ -47,6 +46,10 @@ async def search_documents(
     logger.info(f"Searching for: {query!r} (max_chunks={max_chunks})")
 
     try:
+        # Lazy import - only load when tool is called
+        # This defers loading docs2db_api (10s overhead) until first query
+        from docs2db_mcp.engine import get_engine
+
         engine = await get_engine()
 
         # Search using docs2db-api's UniversalRAGEngine
