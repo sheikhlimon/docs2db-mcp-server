@@ -13,7 +13,74 @@ transport = os.environ.get("DOCS2DB_MCP_TRANSPORT", "sse")
 os.environ.setdefault('FASTMCP_CHECK_FOR_UPDATES', 'off')
 os.environ.setdefault('FASTMCP_LOG_ENABLED', 'false')
 
-# Configure logging BEFORE importing heavy modules
+# Configure docs2db_api logging to CRITICAL before it's imported
+os.environ.setdefault('DOCS2DB_LOG_LEVEL', 'CRITICAL')
+
+# Configure structlog FIRST (before any imports that use it)
+# docs2db_api uses structlog, which must be silenced for stdio mode
+if transport != "sse":
+    # Configure structlog to drop all messages for stdio mode
+    # This MUST happen before importing any module that uses structlog
+    import structlog
+
+    # Null logger factory that discards all logs
+    class NullLogger:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def __getattr__(self, name):
+            def noop(*args, **kwargs):
+                return self
+            return noop
+
+        def bind(self, **kwargs):
+            return self
+
+        def msg(self, msg, **kwargs):
+            return self
+
+        def info(self, msg, **kwargs):
+            return self
+
+        def debug(self, msg, **kwargs):
+            return self
+
+        def warning(self, msg, **kwargs):
+            return self
+
+        def error(self, msg, **kwargs):
+            return self
+
+        def critical(self, msg, **kwargs):
+            return self
+
+    # Null processor that returns empty string (required by structlog)
+    def null_processor(logger, method_name, event_dict):
+        return ""
+
+    # Save the original configure function
+    original_configure = structlog.configure
+
+    # Create a no-op configure that won't override our NullLogger
+    def noop_configure(*args, **kwargs):
+        # Do nothing - keep our NullLogger configuration
+        return None
+
+    # Monkey-patch structlog.configure to prevent reconfiguration
+    structlog.configure = noop_configure
+
+    # Now configure structlog with our NullLogger
+    structlog.configure = original_configure
+    structlog.configure(
+        processors=[null_processor],
+        logger_factory=NullLogger,
+        cache_logger_on_first_use=True,
+    )
+
+    # Monkey-patch again to prevent docs2db_api from reconfiguring
+    structlog.configure = noop_configure
+
+# Configure standard Python logging
 if transport == "sse":
     # Normal logging for SSE mode
     logging.basicConfig(
@@ -50,16 +117,6 @@ def main() -> None:
     # Disable banner at runtime (already set via env var above, but keep for safety)
     import fastmcp
     fastmcp.settings.show_cli_banner = False
-
-    # Configure structlog for stdio mode after server import
-    if transport != "sse":
-        import structlog
-
-        def silent_processor(logger, method_name, event_dict):
-            """Silent processor that returns empty string (structlog requires return value)."""
-            return ""
-
-        structlog.configure(processors=[silent_processor])
 
     logger.info(f"Starting docs2db MCP server on {CONFIG.host}:{CONFIG.port}")
     logger.info(f"Transport: {CONFIG.transport}")
