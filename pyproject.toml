@@ -46,6 +46,9 @@ dev = [
     "mypy >=1.8.0",
 ]
 
+[project.scripts]
+docs2db-mcp-server = "docs2db_mcp.__main__:main"
+
 [project.urls]
 Homepage = "https://github.com/rhel-lightspeed/docs2db-mcp-server"
 Documentation = "https://github.com/rhel-lightspeed/docs2db-mcp-server#readme"
